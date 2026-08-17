@@ -1,9 +1,10 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from langgraph.graph import StateGraph, END
 from app.graph.state import AgentState
 from app.agents.researcher import researcher_agent
 from app.agents.critic import critic_agent
-from dotenv import load_dotenv
-load_dotenv()
 
 MAX_RETRIES = 3
 
@@ -36,12 +37,14 @@ def critic_node(state: AgentState) -> AgentState:
     print(f"Critic decision: {feedback.approved} | Reason: {feedback.reason}")
 
     state["feedback"] = feedback
+
     if feedback.approved:
         state["verified_findings"].append(state["finding"])
     else:
         state["rejected_claims"].append(state["finding"].claim)
 
     return state
+
 
 def route_after_research(state: AgentState) -> str:
     if state["needs_clarification"]:
@@ -62,6 +65,7 @@ graph.add_node("research", research_node)
 graph.add_node("critic", critic_node)
 
 graph.set_entry_point("research")
+
 graph.add_conditional_edges(
     "research",
     route_after_research,
@@ -109,6 +113,8 @@ def run_research(query: str):
     else:
         print("\nMax retries reached. Escalating to human review.")
 
+    return result
+
 
 if __name__ == "__main__":
-    run_research("What was the revenue last year?")
+    run_research("What is the current population of Pakistan?")

@@ -2,6 +2,8 @@ from langgraph.graph import StateGraph, END
 from app.graph.state import AgentState
 from app.agents.researcher import researcher_agent
 from app.agents.critic import critic_agent
+from dotenv import load_dotenv
+load_dotenv()
 
 MAX_RETRIES = 3
 
@@ -109,4 +111,4 @@ def run_research(query: str):
 
 
 if __name__ == "__main__":
-    run_research("What is the current population of Pakistan?")
+    run_research("What was the revenue last year?")

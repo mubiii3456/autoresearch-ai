@@ -8,7 +8,7 @@ load_dotenv()
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 
-def researcher_agent(query: str) -> ResearchFinding:
+def researcher_agent(query: str, rejected_claims: list[str] = None) -> ResearchFinding:
     system_prompt = """You are a Researcher Agent. Respond only in this exact JSON format, nothing else:
 {"claim": "...", "source": "...", "confidence": 0.0}"""
 

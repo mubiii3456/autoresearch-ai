@@ -1,34 +1,88 @@
+from langgraph.graph import StateGraph, END
+from app.graph.state import AgentState
 from app.agents.researcher import researcher_agent
 from app.agents.critic import critic_agent
 
 MAX_RETRIES = 3
 
 
+def research_node(state: AgentState) -> AgentState:
+    print(f"\n--- Attempt {state['attempts'] + 1} ---")
+    print("Researcher agent is processing...")
+
+    finding = researcher_agent(state["query"], state["rejected_claims"])
+    print(f"Researcher output: {finding.claim} (confidence: {finding.confidence})")
+
+    state["finding"] = finding
+    state["attempts"] += 1
+    return state
+
+
+def critic_node(state: AgentState) -> AgentState:
+    print("Critic agent is validating...")
+
+    feedback = critic_agent(state["finding"])
+    print(f"Critic decision: {feedback.approved} | Reason: {feedback.reason}")
+
+    state["feedback"] = feedback
+    if feedback.approved:
+        state["verified_findings"].append(state["finding"])
+    else:
+        state["rejected_claims"].append(state["finding"].claim)
+
+    return state
+
+
+def route_after_critic(state: AgentState) -> str:
+    if state["feedback"].approved:
+        return "approved"
+    if state["attempts"] >= MAX_RETRIES:
+        return "max_retries"
+    return "retry"
+
+
+graph = StateGraph(AgentState)
+graph.add_node("research", research_node)
+graph.add_node("critic", critic_node)
+
+graph.set_entry_point("research")
+graph.add_edge("research", "critic")
+
+graph.add_conditional_edges(
+    "critic",
+    route_after_critic,
+    {
+        "approved": END,
+        "retry": "research",
+        "max_retries": END
+    }
+)
+
+app = graph.compile()
+
+
 def run_research(query: str):
-    print(f"\nSupervisor: Query received -> '{query}'")
+    print(f"Supervisor: Query received -> '{query}'")
 
-    for attempt in range(1, MAX_RETRIES + 1):
-        print(f"\n--- Attempt {attempt} ---")
+    initial_state: AgentState = {
+        "query": query,
+        "finding": None,
+        "feedback": None,
+        "attempts": 0,
+        "rejected_claims": [],
+        "verified_findings": []
+    }
 
-        print("Researcher agent is processing...")
-        finding = researcher_agent(query)
-        print(f"Researcher output: {finding.claim} (confidence: {finding.confidence})")
+    result = app.invoke(initial_state)
 
-        print("Critic agent is validating...")
-        feedback = critic_agent(finding)
+    if result["feedback"].approved:
+        print("\nFinal Result:")
+        print(f"Claim: {result['finding'].claim}")
+        print(f"Source: {result['finding'].source}")
+    else:
+        print("\nMax retries reached. Escalating to human review.")
 
-        if feedback.approved:
-            print(f"Critic approved. Reason: {feedback.reason}")
-            print("\nFinal Result:")
-            print(f"Claim: {finding.claim}")
-            print(f"Source: {finding.source}")
-            return finding
-        else:
-            print(f"Critic rejected. Reason: {feedback.reason}")
-            print("Retrying with feedback...")
-
-    print("\nMax retries reached. Escalating to human review.")
-    return None
+    return result
 
 
 if __name__ == "__main__":

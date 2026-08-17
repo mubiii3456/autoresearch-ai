@@ -9,3 +9,5 @@ class AgentState(TypedDict):
     attempts: int
     rejected_claims: List[str]
     verified_findings: List[ResearchFinding]
+    needs_clarification: bool
+    clarification_question: Optional[str]

@@ -10,10 +10,19 @@ def research_node(state: AgentState) -> AgentState:
     print(f"\n--- Attempt {state['attempts'] + 1} ---")
     print("Researcher agent is processing...")
 
-    finding = researcher_agent(state["query"], state["rejected_claims"])
+    result = researcher_agent(state["query"], state["rejected_claims"])
+
+    if result["needs_clarification"]:
+        print(f"Researcher needs clarification: {result['question']}")
+        state["needs_clarification"] = True
+        state["clarification_question"] = result["question"]
+        return state
+
+    finding = result["finding"]
     print(f"Researcher output: {finding.claim} (confidence: {finding.confidence})")
 
     state["finding"] = finding
+    state["needs_clarification"] = False
     state["attempts"] += 1
     return state
 
@@ -32,6 +41,11 @@ def critic_node(state: AgentState) -> AgentState:
 
     return state
 
+def route_after_research(state: AgentState) -> str:
+    if state["needs_clarification"]:
+        return "needs_clarification"
+    return "proceed_to_critic"
+
 
 def route_after_critic(state: AgentState) -> str:
     if state["feedback"].approved:
@@ -46,7 +60,14 @@ graph.add_node("research", research_node)
 graph.add_node("critic", critic_node)
 
 graph.set_entry_point("research")
-graph.add_edge("research", "critic")
+graph.add_conditional_edges(
+    "research",
+    route_after_research,
+    {
+        "needs_clarification": END,
+        "proceed_to_critic": "critic"
+    }
+)
 
 graph.add_conditional_edges(
     "critic",
@@ -70,19 +91,21 @@ def run_research(query: str):
         "feedback": None,
         "attempts": 0,
         "rejected_claims": [],
-        "verified_findings": []
+        "verified_findings": [],
+        "needs_clarification": False,
+        "clarification_question": None
     }
 
     result = app.invoke(initial_state)
 
-    if result["feedback"].approved:
+    if result["needs_clarification"]:
+        print(f"\nClarification needed: {result['clarification_question']}")
+    elif result["feedback"].approved:
         print("\nFinal Result:")
         print(f"Claim: {result['finding'].claim}")
         print(f"Source: {result['finding'].source}")
     else:
         print("\nMax retries reached. Escalating to human review.")
-
-    return result
 
 
 if __name__ == "__main__":

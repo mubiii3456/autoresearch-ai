@@ -4,6 +4,7 @@ from groq import Groq
 from dotenv import load_dotenv
 from app.schemas.models import ResearchFinding
 from app.mcp_clients.web_search_client import web_search
+from app.security.prompt_guard import sanitize_search_results
 
 load_dotenv()
 
@@ -24,8 +25,8 @@ Otherwise respond only in this exact JSON format:
 {"needs_clarification": false, "claim": "...", "source": "...", "confidence": 0.0}"""
 
     search_results = web_search(query)
-    context = "\n".join([f"- {r['title']}: {r['content']}" for r in search_results.get("results", [])])
-
+    safe_results = sanitize_search_results(search_results.get("results", []))
+    context = "\n".join([f"- {r['title']}: {r['content']}" for r in safe_results])
     user_message = f"""Query: {query}
 
 Search results:

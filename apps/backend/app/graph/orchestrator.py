@@ -6,6 +6,7 @@ from app.graph.state import AgentState
 from app.agents.researcher import researcher_agent
 from app.agents.critic import critic_agent
 from app.mcp_clients.storage_client import save_report
+from app.memory.cache import get_cached_result, set_cached_result
 MAX_RETRIES = 3
 
 
@@ -91,6 +92,13 @@ app = graph.compile()
 def run_research(query: str):
     print(f"Supervisor: Query received -> '{query}'")
 
+    cached = get_cached_result(query)
+    if cached:
+        print(f"\nCache hit! Returning cached result.")
+        print(f"Claim: {cached['claim']}")
+        print(f"Source: {cached['source']}")
+        return cached
+
     initial_state: AgentState = {
         "query": query,
         "finding": None,
@@ -113,6 +121,7 @@ def run_research(query: str):
 
         saved = save_report(result["query"], result["finding"].claim, result["finding"].source)
         print(f"Report saved with ID: {saved['report_id']}")
+        set_cached_result(result["query"], result["finding"].claim, result["finding"].source, result["finding"].confidence)
     else:
         print("\nMax retries reached. Escalating to human review.")
 
@@ -120,4 +129,4 @@ def run_research(query: str):
 
 
 if __name__ == "__main__":
-    run_research("What is the stock price of Tesla?")
+    run_research("What is captital of france?")

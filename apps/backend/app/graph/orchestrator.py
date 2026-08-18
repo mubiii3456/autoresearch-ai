@@ -5,7 +5,7 @@ from langgraph.graph import StateGraph, END
 from app.graph.state import AgentState
 from app.agents.researcher import researcher_agent
 from app.agents.critic import critic_agent
-
+from app.mcp_clients.storage_client import save_report
 MAX_RETRIES = 3
 
 
@@ -110,6 +110,9 @@ def run_research(query: str):
         print("\nFinal Result:")
         print(f"Claim: {result['finding'].claim}")
         print(f"Source: {result['finding'].source}")
+
+        saved = save_report(result["query"], result["finding"].claim, result["finding"].source)
+        print(f"Report saved with ID: {saved['report_id']}")
     else:
         print("\nMax retries reached. Escalating to human review.")
 

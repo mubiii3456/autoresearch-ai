@@ -117,4 +117,4 @@ def run_research(query: str):
 
 
 if __name__ == "__main__":
-    run_research("What is the current population of Pakistan?")
+    run_research("What is the stock price of Tesla?")

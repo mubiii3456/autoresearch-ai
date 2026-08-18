@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from app.schemas.models import ResearchFinding
 from app.mcp_clients.web_search_client import web_search
 from app.security.prompt_guard import sanitize_search_results
-
+from app.mcp_clients.finance_client import get_stock_quote
 load_dotenv()
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -25,6 +25,16 @@ Otherwise respond only in this exact JSON format:
 {"needs_clarification": false, "claim": "...", "source": "...", "confidence": 0.0}"""
 
     search_results = web_search(query)
+    context = "\n".join([f"- {r['title']}: {r['content']}" for r in sanitize_search_results(search_results.get("results", []))])
+
+    common_symbols = {"apple": "AAPL", "tesla": "TSLA", "microsoft": "MSFT", "google": "GOOGL", "amazon": "AMZN"}
+    query_lower = query.lower()
+    matched_symbol = next((sym for name, sym in common_symbols.items() if name in query_lower), None)
+
+    if matched_symbol and ("stock" in query_lower or "price" in query_lower or "share" in query_lower):
+        stock_data = get_stock_quote(matched_symbol)
+        if "error" not in stock_data:
+            context += f"\n\nLive stock data for {matched_symbol}: Price: {stock_data.get('price')}, Change: {stock_data.get('change')} ({stock_data.get('change_percent')})"
     safe_results = sanitize_search_results(search_results.get("results", []))
     context = "\n".join([f"- {r['title']}: {r['content']}" for r in safe_results])
     user_message = f"""Query: {query}

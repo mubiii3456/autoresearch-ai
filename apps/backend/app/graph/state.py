@@ -11,3 +11,5 @@ class AgentState(TypedDict):
     verified_findings: List[ResearchFinding]
     needs_clarification: bool
     clarification_question: Optional[str]
+    draft_report: Optional[str]
+    final_report: Optional[str]

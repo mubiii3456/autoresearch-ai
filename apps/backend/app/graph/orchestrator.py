@@ -7,6 +7,8 @@ from app.agents.researcher import researcher_agent
 from app.agents.critic import critic_agent
 from app.mcp_clients.storage_client import save_report
 from app.memory.cache import get_cached_result, set_cached_result
+from app.agents.writer import writer_agent
+from app.agents.editor import editor_agent
 MAX_RETRIES = 3
 
 
@@ -47,6 +49,26 @@ def critic_node(state: AgentState) -> AgentState:
     return state
 
 
+def writer_node(state: AgentState) -> AgentState:
+    print("Writer agent is drafting report...")
+
+    draft = writer_agent(state["query"], state["finding"].claim, state["finding"].source)
+    print(f"Draft: {draft}")
+
+    state["draft_report"] = draft
+    return state
+
+
+def editor_node(state: AgentState) -> AgentState:
+    print("Editor agent is polishing report...")
+
+    final = editor_agent(state["draft_report"], state["finding"].source)
+    print(f"Final report: {final}")
+
+    state["final_report"] = final
+    return state
+
+
 def route_after_research(state: AgentState) -> str:
     if state["needs_clarification"]:
         return "needs_clarification"
@@ -64,6 +86,8 @@ def route_after_critic(state: AgentState) -> str:
 graph = StateGraph(AgentState)
 graph.add_node("research", research_node)
 graph.add_node("critic", critic_node)
+graph.add_node("writer", writer_node)
+graph.add_node("editor", editor_node)
 
 graph.set_entry_point("research")
 
@@ -80,11 +104,14 @@ graph.add_conditional_edges(
     "critic",
     route_after_critic,
     {
-        "approved": END,
+        "approved": "writer",
         "retry": "research",
         "max_retries": END
     }
 )
+
+graph.add_edge("writer", "editor")
+graph.add_edge("editor", END)
 
 app = graph.compile()
 
@@ -107,7 +134,9 @@ def run_research(query: str):
         "rejected_claims": [],
         "verified_findings": [],
         "needs_clarification": False,
-        "clarification_question": None
+        "clarification_question": None,
+        "draft_report": None,
+        "final_report": None
     }
 
     result = app.invoke(initial_state)
@@ -115,12 +144,11 @@ def run_research(query: str):
     if result["needs_clarification"]:
         print(f"\nClarification needed: {result['clarification_question']}")
     elif result["feedback"].approved:
-        print("\nFinal Result:")
-        print(f"Claim: {result['finding'].claim}")
-        print(f"Source: {result['finding'].source}")
+        print("\nFinal Polished Report:")
+        print(result["final_report"])
 
         saved = save_report(result["query"], result["finding"].claim, result["finding"].source)
-        print(f"Report saved with ID: {saved['report_id']}")
+        print(f"\nReport saved with ID: {saved['report_id']}")
         set_cached_result(result["query"], result["finding"].claim, result["finding"].source, result["finding"].confidence)
     else:
         print("\nMax retries reached. Escalating to human review.")

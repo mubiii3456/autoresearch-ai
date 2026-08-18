@@ -129,4 +129,4 @@ def run_research(query: str):
 
 
 if __name__ == "__main__":
-    run_research("What is captital of france?")
+    run_research("What is the current population of Pakistan?")

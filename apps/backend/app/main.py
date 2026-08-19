@@ -6,6 +6,7 @@ import threading
 from app.graph.orchestrator import run_research
 from fastapi import WebSocket
 from app.graph.orchestrator import app as research_graph, build_initial_state, STEP_LABELS
+from app.mcp_clients.storage_client import list_reports, get_report
 
 app = FastAPI(title="AutoResearch AI")
 
@@ -83,3 +84,12 @@ async def websocket_research(websocket: WebSocket):
         })
 
     await websocket.close()
+
+@app.get("/reports")
+def get_all_reports():
+    return list_reports()
+
+
+@app.get("/reports/{report_id}")
+def get_single_report(report_id: str):
+    return get_report(report_id)

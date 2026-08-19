@@ -9,6 +9,14 @@ from app.mcp_clients.storage_client import save_report
 from app.memory.cache import get_cached_result, set_cached_result
 from app.agents.writer import writer_agent
 from app.agents.editor import editor_agent
+
+STEP_LABELS = {
+    "research": "Researcher agent is searching and analyzing...",
+    "critic": "Critic agent is validating the finding...",
+    "writer": "Writer agent is drafting the report...",
+    "editor": "Editor agent is polishing the final report..."
+}
+
 MAX_RETRIES = 3
 
 
@@ -115,18 +123,8 @@ graph.add_edge("editor", END)
 
 app = graph.compile()
 
-
-def run_research(query: str):
-    print(f"Supervisor: Query received -> '{query}'")
-
-    cached = get_cached_result(query)
-    if cached:
-        print(f"\nCache hit! Returning cached result.")
-        print(f"Claim: {cached['claim']}")
-        print(f"Source: {cached['source']}")
-        return cached
-
-    initial_state: AgentState = {
+def build_initial_state(query: str) -> AgentState:
+    return {
         "query": query,
         "finding": None,
         "feedback": None,
@@ -138,6 +136,18 @@ def run_research(query: str):
         "draft_report": None,
         "final_report": None
     }
+
+def run_research(query: str):
+    print(f"Supervisor: Query received -> '{query}'")
+
+    cached = get_cached_result(query)
+    if cached:
+        print(f"\nCache hit! Returning cached result.")
+        print(f"Claim: {cached['claim']}")
+        print(f"Source: {cached['source']}")
+        return cached
+
+    initial_state = build_initial_state(query)
 
     result = app.invoke(initial_state)
 

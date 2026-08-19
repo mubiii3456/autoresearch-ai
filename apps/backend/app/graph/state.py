@@ -13,3 +13,5 @@ class AgentState(TypedDict):
     clarification_question: Optional[str]
     draft_report: Optional[str]
     final_report: Optional[str]
+    total_tokens: int
+    total_cost: float

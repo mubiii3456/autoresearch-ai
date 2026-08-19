@@ -46,10 +46,15 @@ Based on the above search results, provide your answer."""
 The following claims were previously rejected. Do not repeat them, provide a different or more accurate claim:
 {rejected_list}"""
 
-    raw_text = call_llm(system_prompt, user_message, max_tokens=800)
-    data = json.loads(raw_text)
+    llm_result = call_llm(system_prompt, user_message, max_tokens=800)
+    data = json.loads(llm_result["content"])
 
     if data.get("needs_clarification"):
-        return {"needs_clarification": True, "question": data["question"]}
+        return {"needs_clarification": True, "question": data["question"], "tokens": llm_result["tokens"], "cost": llm_result["cost"]}
 
-    return {"needs_clarification": False, "finding": ResearchFinding(claim=data["claim"], source=data["source"], confidence=data["confidence"])}
+    return {
+        "needs_clarification": False,
+        "finding": ResearchFinding(claim=data["claim"], source=data["source"], confidence=data["confidence"]),
+        "tokens": llm_result["tokens"],
+        "cost": llm_result["cost"]
+    }

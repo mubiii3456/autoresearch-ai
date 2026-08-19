@@ -11,6 +11,6 @@ Respond only in this exact JSON format:
     user_message = f"""Draft report: {draft_report}
 Source to cite: {source}"""
 
-    raw_text = call_llm(system_prompt, user_message, max_tokens=500)
-    data = json.loads(raw_text)
-    return data["final_report"]
+    llm_result = call_llm(system_prompt, user_message, max_tokens=500)
+    data = json.loads(llm_result["content"])
+    return data["final_report"], llm_result["tokens"], llm_result["cost"]

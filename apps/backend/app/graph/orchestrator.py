@@ -30,6 +30,8 @@ def research_node(state: AgentState) -> AgentState:
         print(f"Researcher needs clarification: {result['question']}")
         state["needs_clarification"] = True
         state["clarification_question"] = result["question"]
+        state["total_tokens"] += result["tokens"]
+        state["total_cost"] += result["cost"]
         return state
 
     finding = result["finding"]
@@ -38,13 +40,17 @@ def research_node(state: AgentState) -> AgentState:
     state["finding"] = finding
     state["needs_clarification"] = False
     state["attempts"] += 1
+    state["total_tokens"] += result["tokens"]
+    state["total_cost"] += result["cost"]
     return state
 
 
 def critic_node(state: AgentState) -> AgentState:
     print("Critic agent is validating...")
 
-    feedback = critic_agent(state["finding"])
+    feedback, tokens, cost = critic_agent(state["finding"])
+    state["total_tokens"] += tokens
+    state["total_cost"] += cost
     print(f"Critic decision: {feedback.approved} | Reason: {feedback.reason}")
 
     state["feedback"] = feedback
@@ -60,7 +66,9 @@ def critic_node(state: AgentState) -> AgentState:
 def writer_node(state: AgentState) -> AgentState:
     print("Writer agent is drafting report...")
 
-    draft = writer_agent(state["query"], state["finding"].claim, state["finding"].source)
+    draft, tokens, cost = writer_agent(state["query"], state["finding"].claim, state["finding"].source)
+    state["total_tokens"] += tokens
+    state["total_cost"] += cost
     print(f"Draft: {draft}")
 
     state["draft_report"] = draft
@@ -70,7 +78,9 @@ def writer_node(state: AgentState) -> AgentState:
 def editor_node(state: AgentState) -> AgentState:
     print("Editor agent is polishing report...")
 
-    final = editor_agent(state["draft_report"], state["finding"].source)
+    final, tokens, cost = editor_agent(state["draft_report"], state["finding"].source)
+    state["total_tokens"] += tokens
+    state["total_cost"] += cost
     print(f"Final report: {final}")
 
     state["final_report"] = final
@@ -134,7 +144,9 @@ def build_initial_state(query: str) -> AgentState:
         "needs_clarification": False,
         "clarification_question": None,
         "draft_report": None,
-        "final_report": None
+        "final_report": None,
+        "total_tokens": 0,
+        "total_cost": 0.0
     }
 
 def run_research(query: str):

@@ -20,8 +20,8 @@ Respond only in this exact JSON format, nothing else:
 
     user_message = f"Claim: {finding.claim}\nSource: {finding.source}\nConfidence: {finding.confidence}"
 
-    raw_text = call_llm(system_prompt, user_message, max_tokens=400)
-    data = json.loads(raw_text)
+    llm_result = call_llm(system_prompt, user_message, max_tokens=400)
+    data = json.loads(llm_result["content"])
     confidence_percent = calculate(f"{finding.confidence} * 100")
     print(f"Confidence (via Sandbox MCP calculation): {confidence_percent.get('result')}%")
-    return CriticFeedback(**data)
+    return CriticFeedback(**data), llm_result["tokens"], llm_result["cost"]

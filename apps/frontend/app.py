@@ -41,3 +41,7 @@ if st.button("Research"):
             st.success("Report ready!")
             st.write(final_data["report"])
             st.caption(f"Source: {final_data['source']}")
+
+            col1, col2 = st.columns(2)
+            col1.metric("Tokens Used", final_data.get("tokens", 0))
+            col2.metric("Estimated Cost", f"${final_data.get('cost', 0):.5f}")

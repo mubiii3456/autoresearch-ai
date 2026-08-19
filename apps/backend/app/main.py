@@ -33,7 +33,9 @@ def research(request: ResearchRequest):
     return {
         "status": "completed",
         "report": result.get("final_report"),
-        "source": result["finding"].source if result.get("finding") else None
+        "source": result["finding"].source if result.get("finding") else None,
+        "tokens": result.get("total_tokens"),
+        "cost": result.get("total_cost")
     }
 
 @app.websocket("/ws/research")
@@ -80,7 +82,10 @@ async def websocket_research(websocket: WebSocket):
             "type": "final",
             "status": "completed",
             "report": final_state.get("final_report"),
-            "source": final_state["finding"].source if final_state.get("finding") else None
+            "source": final_state["finding"].source if final_state.get("finding") else None,
+            "tokens": final_state.get("total_tokens"),
+            "cost": final_state.get("total_cost")
+
         })
 
     await websocket.close()

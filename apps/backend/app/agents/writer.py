@@ -12,6 +12,6 @@ Respond only in this exact JSON format:
 Verified claim: {claim}
 Source: {source}"""
 
-    raw_text = call_llm(system_prompt, user_message, max_tokens=500)
-    data = json.loads(raw_text)
-    return data["report"]
+    llm_result = call_llm(system_prompt, user_message, max_tokens=500)
+    data = json.loads(llm_result["content"])
+    return data["report"], llm_result["tokens"], llm_result["cost"]

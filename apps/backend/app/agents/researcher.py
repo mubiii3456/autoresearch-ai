@@ -1,14 +1,9 @@
-import os
 import json
-from groq import Groq
-from dotenv import load_dotenv
 from app.schemas.models import ResearchFinding
 from app.mcp_clients.web_search_client import web_search
 from app.security.prompt_guard import sanitize_search_results
 from app.mcp_clients.finance_client import get_stock_quote
-load_dotenv()
-
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+from app.agents.llm_helper import call_llm
 
 
 def researcher_agent(query: str, rejected_claims: list[str] = None) -> dict:
@@ -51,17 +46,7 @@ Based on the above search results, provide your answer."""
 The following claims were previously rejected. Do not repeat them, provide a different or more accurate claim:
 {rejected_list}"""
 
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message}
-        ],
-        max_tokens=800,
-        response_format={"type": "json_object"}
-    )
-
-    raw_text = response.choices[0].message.content
+    raw_text = call_llm(system_prompt, user_message, max_tokens=800)
     data = json.loads(raw_text)
 
     if data.get("needs_clarification"):

@@ -1,11 +1,5 @@
-import os
 import json
-from groq import Groq
-from dotenv import load_dotenv
-
-load_dotenv()
-
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+from app.agents.llm_helper import call_llm
 
 
 def editor_agent(draft_report: str, source: str) -> str:
@@ -17,15 +11,6 @@ Respond only in this exact JSON format:
     user_message = f"""Draft report: {draft_report}
 Source to cite: {source}"""
 
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message}
-        ],
-        max_tokens=500,
-        response_format={"type": "json_object"}
-    )
-
-    data = json.loads(response.choices[0].message.content)
+    raw_text = call_llm(system_prompt, user_message, max_tokens=500)
+    data = json.loads(raw_text)
     return data["final_report"]

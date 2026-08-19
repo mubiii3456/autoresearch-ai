@@ -177,6 +177,26 @@ def run_research(query: str):
 
     return result
 
+def run_until_critic(query: str):
+    state = build_initial_state(query)
+
+    for attempt in range(1, 4):
+        state = research_node(state)
+        if state["needs_clarification"]:
+            return state
+        state = critic_node(state)
+        if state["feedback"].approved:
+            return state
+        if state["attempts"] >= 3:
+            return state
+
+    return state
+
+
+def run_writer_editor(state: AgentState):
+    state = writer_node(state)
+    state = editor_node(state)
+    return state
 
 if __name__ == "__main__":
     run_research("What is the current population of Pakistan?")

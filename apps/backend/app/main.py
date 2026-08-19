@@ -7,6 +7,7 @@ from app.graph.orchestrator import run_research
 from fastapi import WebSocket
 from app.graph.orchestrator import app as research_graph, build_initial_state, STEP_LABELS
 from app.mcp_clients.storage_client import list_reports, get_report
+from app.graph.orchestrator import run_until_critic, run_writer_editor
 
 app = FastAPI(title="AutoResearch AI")
 
@@ -45,48 +46,56 @@ async def websocket_research(websocket: WebSocket):
     data = await websocket.receive_json()
     query = data["query"]
 
-    initial_state = build_initial_state(query)
-    event_queue = queue.Queue()
+    state = await asyncio.to_thread(run_until_critic, query)
 
-    def run_graph():
-        for event in research_graph.stream(initial_state):
-            event_queue.put(event)
-        event_queue.put(None)
-
-    thread = threading.Thread(target=run_graph)
-    thread.start()
-
-    final_state = None
-
-    while True:
-        event = await asyncio.to_thread(event_queue.get)
-
-        if event is None:
-            break
-
-        for node_name, node_state in event.items():
-            label = STEP_LABELS.get(node_name, f"{node_name} running...")
-            await websocket.send_json({"type": "step", "message": label})
-            final_state = node_state
-
-    thread.join()
-
-    if final_state.get("needs_clarification"):
+    if state["needs_clarification"]:
         await websocket.send_json({
             "type": "final",
             "status": "needs_clarification",
-            "question": final_state["clarification_question"]
+            "question": state["clarification_question"]
         })
-    else:
+        await websocket.close()
+        return
+
+    if not state["feedback"].approved:
         await websocket.send_json({
             "type": "final",
-            "status": "completed",
-            "report": final_state.get("final_report"),
-            "source": final_state["finding"].source if final_state.get("finding") else None,
-            "tokens": final_state.get("total_tokens"),
-            "cost": final_state.get("total_cost")
-
+            "status": "max_retries",
+            "message": "Could not verify a claim after multiple attempts."
         })
+        await websocket.close()
+        return
+
+    await websocket.send_json({
+        "type": "approval_needed",
+        "claim": state["finding"].claim,
+        "source": state["finding"].source
+    })
+
+    try:
+        approval_response = await websocket.receive_json()
+    except Exception:
+        return
+
+    if not approval_response.get("approved"):
+        await websocket.send_json({
+            "type": "final",
+            "status": "rejected_by_user",
+            "message": "Report generation cancelled by user."
+        })
+        await websocket.close()
+        return
+
+    final_state = await asyncio.to_thread(run_writer_editor, state)
+
+    await websocket.send_json({
+        "type": "final",
+        "status": "completed",
+        "report": final_state.get("final_report"),
+        "source": final_state["finding"].source,
+        "tokens": final_state.get("total_tokens"),
+        "cost": final_state.get("total_cost")
+    })
 
     await websocket.close()
 

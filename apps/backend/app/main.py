@@ -8,6 +8,7 @@ from fastapi import WebSocket
 from app.graph.orchestrator import app as research_graph, build_initial_state, STEP_LABELS
 from app.mcp_clients.storage_client import list_reports, get_report
 from app.graph.orchestrator import run_until_critic, run_writer_editor
+from app.mcp_clients.storage_client import save_report
 
 app = FastAPI(title="AutoResearch AI")
 
@@ -87,6 +88,9 @@ async def websocket_research(websocket: WebSocket):
         return
 
     final_state = await asyncio.to_thread(run_writer_editor, state)
+
+    saved = await asyncio.to_thread(save_report, final_state["query"], final_state["finding"].claim, final_state["finding"].source)
+    print(f"Report saved with ID: {saved['report_id']}")
 
     await websocket.send_json({
         "type": "final",

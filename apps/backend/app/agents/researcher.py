@@ -6,7 +6,7 @@ from app.mcp_clients.finance_client import get_stock_quote
 from app.agents.llm_helper import call_llm
 
 
-def researcher_agent(query: str, rejected_claims: list[str] = None) -> dict:
+def researcher_agent(query: str, rejected_claims: list[str] = None, conversation_history: list[dict] = None) -> dict:
     system_prompt = """You are a Researcher Agent with access to live web search results.
 
 Only ask for clarification if the query is genuinely impossible to answer without more information (e.g. missing a company name, missing a specific year when it matters, or referring to something with no clear subject).
@@ -32,12 +32,17 @@ Otherwise respond only in this exact JSON format:
             context += f"\n\nLive stock data for {matched_symbol}: Price: {stock_data.get('price')}, Change: {stock_data.get('change')} ({stock_data.get('change_percent')})"
     safe_results = sanitize_search_results(search_results.get("results", []))
     context = "\n".join([f"- {r['title']}: {r['content']}" for r in safe_results])
-    user_message = f"""Query: {query}
+    history_context = ""
+    if conversation_history:
+        history_lines = [f"Q: {h['query']}\nA: {h['answer']}" for h in conversation_history[-3:]]
+        history_context = "Previous conversation:\n" + "\n\n".join(history_lines) + "\n\n"
+
+    user_message = f"""{history_context}Query: {query}
 
 Search results:
 {context}
 
-Based on the above search results, provide your answer."""
+Based on the above search results and previous conversation (if relevant), provide your answer. If the query refers to something mentioned earlier (like "it", "that company", "its"), resolve it using the conversation history."""
 
     if rejected_claims:
         rejected_list = "\n".join(f"- {c}" for c in rejected_claims)

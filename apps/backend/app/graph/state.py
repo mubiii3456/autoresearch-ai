@@ -15,3 +15,4 @@ class AgentState(TypedDict):
     final_report: Optional[str]
     total_tokens: int
     total_cost: float
+    conversation_history: List[dict]

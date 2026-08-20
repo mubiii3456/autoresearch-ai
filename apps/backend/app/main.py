@@ -46,9 +46,9 @@ async def websocket_research(websocket: WebSocket):
 
     data = await websocket.receive_json()
     query = data["query"]
+    conversation_history = data.get("conversation_history", [])
 
-    state = await asyncio.to_thread(run_until_critic, query)
-
+    state = await asyncio.to_thread(run_until_critic, query, conversation_history)
     if state["needs_clarification"]:
         await websocket.send_json({
             "type": "final",
@@ -98,7 +98,8 @@ async def websocket_research(websocket: WebSocket):
         "report": final_state.get("final_report"),
         "source": final_state["finding"].source,
         "tokens": final_state.get("total_tokens"),
-        "cost": final_state.get("total_cost")
+        "cost": final_state.get("total_cost"),
+        "answer": final_state["finding"].claim
     })
 
     await websocket.close()

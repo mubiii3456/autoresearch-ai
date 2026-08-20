@@ -24,7 +24,7 @@ def research_node(state: AgentState) -> AgentState:
     print(f"\n--- Attempt {state['attempts'] + 1} ---")
     print("Researcher agent is processing...")
 
-    result = researcher_agent(state["query"], state["rejected_claims"])
+    result = researcher_agent(state["query"], state["rejected_claims"], state.get("conversation_history"))
 
     if result["needs_clarification"]:
         print(f"Researcher needs clarification: {result['question']}")
@@ -133,7 +133,7 @@ graph.add_edge("editor", END)
 
 app = graph.compile()
 
-def build_initial_state(query: str) -> AgentState:
+def build_initial_state(query: str, conversation_history: list = None) -> AgentState:
     return {
         "query": query,
         "finding": None,
@@ -146,7 +146,8 @@ def build_initial_state(query: str) -> AgentState:
         "draft_report": None,
         "final_report": None,
         "total_tokens": 0,
-        "total_cost": 0.0
+        "total_cost": 0.0,
+        "conversation_history": conversation_history or []
     }
 
 def run_research(query: str):
@@ -177,8 +178,8 @@ def run_research(query: str):
 
     return result
 
-def run_until_critic(query: str):
-    state = build_initial_state(query)
+def run_until_critic(query: str, conversation_history: list = None):
+    state = build_initial_state(query, conversation_history)
 
     for attempt in range(1, 4):
         state = research_node(state)

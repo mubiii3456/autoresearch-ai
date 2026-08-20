@@ -89,7 +89,7 @@ async def websocket_research(websocket: WebSocket):
 
     final_state = await asyncio.to_thread(run_writer_editor, state)
 
-    saved = await asyncio.to_thread(save_report, final_state["query"], final_state["finding"].claim, final_state["finding"].source)
+    saved = await asyncio.to_thread(save_report, final_state["query"], final_state["finding"].claim, final_state["finding"].source, final_state.get("total_tokens", 0), final_state.get("total_cost", 0.0))
     print(f"Report saved with ID: {saved['report_id']}")
 
     await websocket.send_json({

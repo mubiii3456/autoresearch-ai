@@ -11,7 +11,7 @@ os.makedirs(STORAGE_DIR, exist_ok=True)
 
 
 @mcp.tool()
-def save_report(query: str, claim: str, source: str) -> dict:
+def save_report(query: str, claim: str, source: str, tokens: int = 0, cost: float = 0.0) -> dict:
     report_id = str(uuid.uuid4())[:8]
 
     report = {
@@ -19,6 +19,8 @@ def save_report(query: str, claim: str, source: str) -> dict:
         "query": query,
         "claim": claim,
         "source": source,
+        "tokens": tokens,
+        "cost": cost,
         "created_at": datetime.now().isoformat()
     }
 

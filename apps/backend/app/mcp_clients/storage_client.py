@@ -25,9 +25,8 @@ async def _call_tool_async(tool_name: str, arguments: dict) -> dict:
             return json.loads(raw_text)
 
 
-def save_report(query: str, claim: str, source: str) -> dict:
-    return asyncio.run(_call_tool_async("save_report", {"query": query, "claim": claim, "source": source}))
-
+def save_report(query: str, claim: str, source: str, tokens: int = 0, cost: float = 0.0) -> dict:
+    return asyncio.run(_call_tool_async("save_report", {"query": query, "claim": claim, "source": source, "tokens": tokens, "cost": cost}))
 
 def get_report(report_id: str) -> dict:
     return asyncio.run(_call_tool_async("get_report", {"report_id": report_id}))

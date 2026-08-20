@@ -9,6 +9,7 @@ from app.mcp_clients.storage_client import save_report
 from app.memory.cache import get_cached_result, set_cached_result
 from app.agents.writer import writer_agent
 from app.agents.editor import editor_agent
+from app.protocol.message import AgentMessage, MessageType
 
 STEP_LABELS = {
     "research": "Researcher agent is searching and analyzing...",
@@ -38,6 +39,14 @@ def research_node(state: AgentState) -> AgentState:
     print(f"Researcher output: {finding.claim} (confidence: {finding.confidence})")
 
     state["finding"] = finding
+    message = AgentMessage(
+        sender="researcher",
+        receiver="critic",
+        message_type=MessageType.RESPONSE,
+        payload=finding.model_dump(),
+        confidence_score=finding.confidence
+    )
+    print(f"[Protocol] {message.sender} -> {message.receiver}: {message.message_type.value} (confidence: {message.confidence_score})")
     state["needs_clarification"] = False
     state["attempts"] += 1
     state["total_tokens"] += result["tokens"]
@@ -54,6 +63,15 @@ def critic_node(state: AgentState) -> AgentState:
     print(f"Critic decision: {feedback.approved} | Reason: {feedback.reason}")
 
     state["feedback"] = feedback
+
+    message = AgentMessage(
+        sender="critic",
+        receiver="researcher" if not feedback.approved else "writer",
+        message_type=MessageType.REJECTION if not feedback.approved else MessageType.RESPONSE,
+        payload=feedback.model_dump(),
+        confidence_score=None
+    )
+    print(f"[Protocol] {message.sender} -> {message.receiver}: {message.message_type.value}")
 
     if feedback.approved:
         state["verified_findings"].append(state["finding"])

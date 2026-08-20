@@ -51,7 +51,7 @@ Based on the above search results and previous conversation (if relevant), provi
 The following claims were previously rejected. Do not repeat them, provide a different or more accurate claim:
 {rejected_list}"""
 
-    llm_result = call_llm(system_prompt, user_message, max_tokens=800)
+    llm_result = call_llm(system_prompt, user_message, max_tokens=1400)
     data = json.loads(llm_result["content"])
 
     if data.get("needs_clarification"):

@@ -1,11 +1,16 @@
 import streamlit as st
 import websocket
 import json
+from theme import inject_theme, render_pipeline
 
 st.set_page_config(page_title="AutoResearch AI", page_icon="🔍")
 
+inject_theme()
+
 st.title("AutoResearch AI")
 st.write("Ask a question and get a researched, fact-checked report.")
+
+render_pipeline()
 
 WS_URL = "ws://127.0.0.1:8000/ws/research"
 
@@ -52,10 +57,17 @@ if st.session_state.stage == "input":
                     st.error(message["message"])
 
 elif st.session_state.stage == "approval":
-    st.subheader("Review Before Finalizing")
-    st.write(f"**Claim:** {st.session_state.pending_claim}")
-    st.write(f"**Source:** {st.session_state.pending_source}")
+    st.markdown(f"""
+        <div class="approval-card">
+            <p style="color:#E8A33D; font-family:'JetBrains Mono', monospace; font-size:0.75rem; margin-bottom:8px;">
+                REVIEW BEFORE FINALIZING
+            </p>
+            <p style="margin-bottom:6px;"><strong>Claim:</strong> {st.session_state.pending_claim}</p>
+            <p style="color:#8792A6; font-size:0.85rem;"><strong>Source:</strong> {st.session_state.pending_source}</p>
+        </div>
+    """, unsafe_allow_html=True)
 
+    st.write("")
     col1, col2 = st.columns(2)
     approve_clicked = col1.button("✅ Approve and Generate Report")
     reject_clicked = col2.button("❌ Reject")
@@ -77,10 +89,17 @@ elif st.session_state.stage == "done":
     final_message = st.session_state.last_result
 
     if final_message["status"] == "completed":
-        st.success("Report ready!")
-        st.write(final_message["report"])
-        st.caption(f"Source: {final_message['source']}")
+        st.markdown(f"""
+            <div class="report-card">
+                <p style="color:#4FD1C5; font-family:'JetBrains Mono', monospace; font-size:0.75rem; margin-bottom:10px;">
+                    ✓ REPORT READY
+                </p>
+                <p style="line-height:1.6;">{final_message['report']}</p>
+                <p style="color:#8792A6; font-size:0.8rem; margin-top:14px;">Source: {final_message['source']}</p>
+            </div>
+        """, unsafe_allow_html=True)
 
+        st.write("")
         col_a, col_b = st.columns(2)
         col_a.metric("Tokens Used", final_message.get("tokens", 0))
         col_b.metric("Estimated Cost", f"${final_message.get('cost', 0):.5f}")

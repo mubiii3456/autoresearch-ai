@@ -1,7 +1,10 @@
 import streamlit as st
 import requests
+from theme import inject_theme
 
 st.set_page_config(page_title="Report Viewer", page_icon="📄")
+
+inject_theme()
 
 st.title("Saved Reports")
 

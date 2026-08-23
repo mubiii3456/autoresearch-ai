@@ -1,7 +1,9 @@
 import streamlit as st
 import requests
-
+from theme import inject_theme
 st.set_page_config(page_title="Cost Tracker", page_icon="💰")
+
+inject_theme()
 
 st.title("Cost & Token Tracker")
 

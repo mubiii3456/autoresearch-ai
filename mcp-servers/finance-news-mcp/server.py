@@ -1,20 +1,25 @@
 import os
 import requests
+from fastapi import FastAPI
+from pydantic import BaseModel
 from dotenv import load_dotenv
-from mcp.server import MCPServer
 
 load_dotenv()
 
-mcp = MCPServer("finance-news-mcp")
+app = FastAPI()
 API_KEY = os.environ.get("ALPHA_VANTAGE_API_KEY")
 BASE_URL = "https://www.alphavantage.co/query"
 
 
-@mcp.tool()
-def get_stock_quote(symbol: str) -> dict:
+class SymbolRequest(BaseModel):
+    symbol: str
+
+
+@app.post("/quote")
+def get_stock_quote(request: SymbolRequest):
     params = {
         "function": "GLOBAL_QUOTE",
-        "symbol": symbol,
+        "symbol": request.symbol,
         "apikey": API_KEY
     }
 
@@ -24,7 +29,7 @@ def get_stock_quote(symbol: str) -> dict:
     quote = data.get("Global Quote", {})
 
     if not quote:
-        return {"error": f"No data found for symbol '{symbol}'"}
+        return {"error": f"No data found for symbol '{request.symbol}'"}
 
     return {
         "symbol": quote.get("01. symbol"),
@@ -35,11 +40,11 @@ def get_stock_quote(symbol: str) -> dict:
     }
 
 
-@mcp.tool()
-def get_company_overview(symbol: str) -> dict:
+@app.post("/overview")
+def get_company_overview(request: SymbolRequest):
     params = {
         "function": "OVERVIEW",
-        "symbol": symbol,
+        "symbol": request.symbol,
         "apikey": API_KEY
     }
 
@@ -47,7 +52,7 @@ def get_company_overview(symbol: str) -> dict:
     data = response.json()
 
     if not data or "Symbol" not in data:
-        return {"error": f"No overview found for symbol '{symbol}'"}
+        return {"error": f"No overview found for symbol '{request.symbol}'"}
 
     return {
         "name": data.get("Name"),
@@ -59,5 +64,6 @@ def get_company_overview(symbol: str) -> dict:
     }
 
 
-if __name__ == "__main__":
-    mcp.run()
+@app.get("/health")
+def health():
+    return {"status": "ok"}

@@ -1,36 +1,21 @@
-import asyncio
 import os
-import json
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+import requests
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "..", ".."))
-
-SERVER_PYTHON = os.path.join(PROJECT_ROOT, "mcp-servers", "document-storage-mcp", "venv", "Scripts", "python.exe")
-SERVER_SCRIPT = os.path.join(PROJECT_ROOT, "mcp-servers", "document-storage-mcp", "server.py")
-
-SERVER_PARAMS = StdioServerParameters(
-    command=SERVER_PYTHON,
-    args=[SERVER_SCRIPT]
-)
-
-
-async def _call_tool_async(tool_name: str, arguments: dict) -> dict:
-    async with stdio_client(SERVER_PARAMS) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            result = await session.call_tool(tool_name, arguments)
-            raw_text = result.content[0].text
-            return json.loads(raw_text)
+STORAGE_MCP_URL = os.environ.get("STORAGE_MCP_URL", "http://localhost:8003")
 
 
 def save_report(query: str, claim: str, source: str, tokens: int = 0, cost: float = 0.0) -> dict:
-    return asyncio.run(_call_tool_async("save_report", {"query": query, "claim": claim, "source": source, "tokens": tokens, "cost": cost}))
+    response = requests.post(f"{STORAGE_MCP_URL}/reports", json={
+        "query": query, "claim": claim, "source": source, "tokens": tokens, "cost": cost
+    }, timeout=15)
+    return response.json()
+
 
 def get_report(report_id: str) -> dict:
-    return asyncio.run(_call_tool_async("get_report", {"report_id": report_id}))
+    response = requests.get(f"{STORAGE_MCP_URL}/reports/{report_id}", timeout=15)
+    return response.json()
 
 
 def list_reports() -> dict:
-    return asyncio.run(_call_tool_async("list_reports", {}))
+    response = requests.get(f"{STORAGE_MCP_URL}/reports", timeout=15)
+    return response.json()

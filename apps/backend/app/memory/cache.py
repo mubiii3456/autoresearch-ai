@@ -1,8 +1,10 @@
 import redis
 import json
 import hashlib
+import os
 
-client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+client = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
 
 CACHE_TTL_SECONDS = 3600
 

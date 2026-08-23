@@ -1,29 +1,9 @@
-import asyncio
 import os
-import json
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+import requests
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "..", ".."))
-
-SERVER_PYTHON = os.path.join(PROJECT_ROOT, "mcp-servers", "sandbox-exec-mcp", "venv", "Scripts", "python.exe")
-SERVER_SCRIPT = os.path.join(PROJECT_ROOT, "mcp-servers", "sandbox-exec-mcp", "server.py")
-
-SERVER_PARAMS = StdioServerParameters(
-    command=SERVER_PYTHON,
-    args=[SERVER_SCRIPT]
-)
-
-
-async def _call_tool_async(tool_name: str, arguments: dict) -> dict:
-    async with stdio_client(SERVER_PARAMS) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            result = await session.call_tool(tool_name, arguments)
-            raw_text = result.content[0].text
-            return json.loads(raw_text)
+SANDBOX_MCP_URL = os.environ.get("SANDBOX_MCP_URL", "http://localhost:8004")
 
 
 def calculate(expression: str) -> dict:
-    return asyncio.run(_call_tool_async("calculate", {"expression": expression}))
+    response = requests.post(f"{SANDBOX_MCP_URL}/calculate", json={"expression": expression}, timeout=15)
+    return response.json()

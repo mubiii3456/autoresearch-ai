@@ -1,14 +1,15 @@
 import os
 import uuid
 from datetime import datetime
+from fastapi import FastAPI
+from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, String, Float, Integer, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 from dotenv import load_dotenv
-from mcp.server import MCPServer
 
 load_dotenv()
 
-mcp = MCPServer("document-storage-mcp")
+app = FastAPI()
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
@@ -31,18 +32,26 @@ class Report(Base):
 Base.metadata.create_all(engine)
 
 
-@mcp.tool()
-def save_report(query: str, claim: str, source: str, tokens: int = 0, cost: float = 0.0) -> dict:
+class SaveReportRequest(BaseModel):
+    query: str
+    claim: str
+    source: str
+    tokens: int = 0
+    cost: float = 0.0
+
+
+@app.post("/reports")
+def save_report(request: SaveReportRequest):
     report_id = str(uuid.uuid4())[:8]
 
     session = SessionLocal()
     report = Report(
         id=report_id,
-        query=query,
-        claim=claim,
-        source=source,
-        tokens=tokens,
-        cost=cost,
+        query=request.query,
+        claim=request.claim,
+        source=request.source,
+        tokens=request.tokens,
+        cost=request.cost,
         created_at=datetime.utcnow()
     )
     session.add(report)
@@ -52,8 +61,8 @@ def save_report(query: str, claim: str, source: str, tokens: int = 0, cost: floa
     return {"report_id": report_id, "status": "saved"}
 
 
-@mcp.tool()
-def get_report(report_id: str) -> dict:
+@app.get("/reports/{report_id}")
+def get_report(report_id: str):
     session = SessionLocal()
     report = session.query(Report).filter(Report.id == report_id).first()
     session.close()
@@ -72,8 +81,8 @@ def get_report(report_id: str) -> dict:
     }
 
 
-@mcp.tool()
-def list_reports() -> dict:
+@app.get("/reports")
+def list_reports():
     session = SessionLocal()
     reports = session.query(Report).order_by(Report.created_at.desc()).all()
     session.close()
@@ -86,5 +95,6 @@ def list_reports() -> dict:
     }
 
 
-if __name__ == "__main__":
-    mcp.run()
+@app.get("/health")
+def health():
+    return {"status": "ok"}

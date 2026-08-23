@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: autoresearch-postgres
+    environment:
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: autoresearch_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - autoresearch-net
+
+  redis:
+    image: redis:7
+    container_name: autoresearch-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - autoresearch-net
+
+  web-search-mcp:
+    build: ./mcp-servers/web-search-mcp
+    container_name: web-search-mcp
+    env_file:
+      - ./mcp-servers/web-search-mcp/.env
+    ports:
+      - "8001:8001"
+    networks:
+      - autoresearch-net
+
+  finance-news-mcp:
+    build: ./mcp-servers/finance-news-mcp
+    container_name: finance-news-mcp
+    env_file:
+      - ./mcp-servers/finance-news-mcp/.env
+    ports:
+      - "8002:8002"
+    networks:
+      - autoresearch-net
+
+  document-storage-mcp:
+    build: ./mcp-servers/document-storage-mcp
+    container_name: document-storage-mcp
+    environment:
+      DATABASE_URL: postgresql://postgres:admin@postgres:5432/autoresearch_db
+    ports:
+      - "8003:8003"
+    depends_on:
+      - postgres
+    networks:
+      - autoresearch-net
+
+  sandbox-exec-mcp:
+    build: ./mcp-servers/sandbox-exec-mcp
+    container_name: sandbox-exec-mcp
+    ports:
+      - "8004:8004"
+    networks:
+      - autoresearch-net
+
+  backend:
+    build: ./apps/backend
+    container_name: autoresearch-backend
+    env_file:
+      - ./apps/backend/.env
+    environment:
+      DATABASE_URL: postgresql://postgres:admin@postgres:5432/autoresearch_db
+      REDIS_HOST: redis
+      WEB_SEARCH_MCP_URL: http://web-search-mcp:8001
+      FINANCE_MCP_URL: http://finance-news-mcp:8002
+      STORAGE_MCP_URL: http://document-storage-mcp:8003
+      SANDBOX_MCP_URL: http://sandbox-exec-mcp:8004
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+      - web-search-mcp
+      - finance-news-mcp
+      - document-storage-mcp
+      - sandbox-exec-mcp
+    networks:
+      - autoresearch-net
+
+  frontend:
+    build: ./apps/frontend
+    container_name: autoresearch-frontend
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+    networks:
+      - autoresearch-net
+
+networks:
+  autoresearch-net:
+    driver: bridge
+
+volumes:
+  postgres_data:

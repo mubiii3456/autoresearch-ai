@@ -1,8 +1,9 @@
 import ast
 import operator
-from mcp.server import MCPServer
+from fastapi import FastAPI
+from pydantic import BaseModel
 
-mcp = MCPServer("sandbox-exec-mcp")
+app = FastAPI()
 
 ALLOWED_OPERATORS = {
     ast.Add: operator.add,
@@ -30,15 +31,20 @@ def _safe_eval(node):
     raise ValueError(f"Unsupported expression: {node}")
 
 
-@mcp.tool()
-def calculate(expression: str) -> dict:
+class CalculateRequest(BaseModel):
+    expression: str
+
+
+@app.post("/calculate")
+def calculate(request: CalculateRequest):
     try:
-        tree = ast.parse(expression, mode="eval")
+        tree = ast.parse(request.expression, mode="eval")
         result = _safe_eval(tree.body)
-        return {"expression": expression, "result": result}
+        return {"expression": request.expression, "result": result}
     except Exception as e:
         return {"error": f"Could not evaluate expression: {str(e)}"}
 
 
-if __name__ == "__main__":
-    mcp.run()
+@app.get("/health")
+def health():
+    return {"status": "ok"}

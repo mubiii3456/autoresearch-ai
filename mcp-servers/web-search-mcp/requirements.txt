@@ -1,3 +1,5 @@
 mcp
 tavily-python
 python-dotenv
+fastapi
+uvicorn

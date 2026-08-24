@@ -87,6 +87,8 @@ services:
   frontend:
     build: ./apps/frontend
     container_name: autoresearch-frontend
+    environment:
+      BACKEND_HOST: autoresearch-backend
     ports:
       - "8501:8501"
     depends_on:

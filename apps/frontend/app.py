@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import websocket
 import json
@@ -12,7 +13,9 @@ st.write("Ask a question and get a researched, fact-checked report.")
 
 render_pipeline()
 
-WS_URL = "ws://127.0.0.1:8000/ws/research"
+BACKEND_HOST = os.environ.get("BACKEND_HOST", "127.0.0.1")
+WS_URL = f"ws://{BACKEND_HOST}:8000/ws/research"
+BACKEND_URL = f"http://{BACKEND_HOST}:8000"
 
 if "stage" not in st.session_state:
     st.session_state.stage = "input"

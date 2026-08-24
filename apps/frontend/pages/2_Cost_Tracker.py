@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import requests
 from theme import inject_theme
@@ -7,7 +8,8 @@ inject_theme()
 
 st.title("Cost & Token Tracker")
 
-BACKEND_URL = "http://127.0.0.1:8000"
+BACKEND_HOST = os.environ.get("BACKEND_HOST", "127.0.0.1")
+BACKEND_URL = f"http://{BACKEND_HOST}:8000"
 
 response = requests.get(f"{BACKEND_URL}/reports")
 

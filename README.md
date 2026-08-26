@@ -6,7 +6,6 @@
  
 ## Demo
  
-> 📹 **[Watch Demo Video](#)** — *(add your Loom/YouTube link here)*
  
 | Main Research Flow | Report Output | Cost Tracker |
 |:---:|:---:|:---:|

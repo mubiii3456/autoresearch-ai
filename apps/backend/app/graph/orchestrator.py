@@ -1,5 +1,3 @@
-from dotenv import load_dotenv
-load_dotenv()
 
 from langgraph.graph import StateGraph, END
 from app.graph.state import AgentState
@@ -10,6 +8,9 @@ from app.memory.cache import get_cached_result, set_cached_result
 from app.agents.writer import writer_agent
 from app.agents.editor import editor_agent
 from app.protocol.message import AgentMessage, MessageType
+from langsmith import traceable
+from dotenv import load_dotenv
+load_dotenv()
 
 STEP_LABELS = {
     "research": "Researcher agent is searching and analyzing...",
@@ -196,6 +197,10 @@ def run_research(query: str):
 
     return result
 
+@traceable(name="research-pipeline")
+def run_until_critic(query: str, conversation_history: list = None):
+    state = build_initial_state(query, conversation_history)
+ 
 def run_until_critic(query: str, conversation_history: list = None):
     state = build_initial_state(query, conversation_history)
 
@@ -211,7 +216,7 @@ def run_until_critic(query: str, conversation_history: list = None):
 
     return state
 
-
+@traceable(name="writer-editor-pipeline")
 def run_writer_editor(state: AgentState):
     state = writer_node(state)
     state = editor_node(state)

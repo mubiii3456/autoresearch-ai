@@ -1,5 +1,6 @@
 import os
 from groq import Groq
+from langsmith import traceable
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,7 +11,7 @@ PRIMARY_MODEL = "openai/gpt-oss-120b"
 FALLBACK_MODEL = "qwen/qwen3.6-27b"
 COST_PER_1K_TOKENS = 0.0002
 
-
+@traceable(name="llm-call")
 def call_llm(system_prompt: str, user_message: str, max_tokens: int = 500) -> dict:
     models_to_try = [PRIMARY_MODEL, FALLBACK_MODEL]
 
